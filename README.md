@@ -6,7 +6,7 @@ A principal funcionalidade é a atualização instantânea via **WebSockets**: e
 
 O projeto é construído com **Node.js, Express, TypeScript e Socket.IO**.
 
-![Demonstração de Uso]()
+<img width="1224" height="677" alt="2025-09-11-103621_hyprshot" src="https://github.com/user-attachments/assets/568d7b50-291e-4221-beee-87448c6d6262" />
 
 ## ✨ Funcionalidades
 
