@@ -8,7 +8,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer);
 
-const PORT = process.env.PORT || 5001;
+const PORT = 5001;
 const LABELARY_API_URL =
   "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/";
 
