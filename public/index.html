@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Zebra Simulator</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background-color: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 20px;
+      }
+      .container {
+        display: flex;
+        gap: 20px;
+        width: 100%;
+        max-width: 1200px;
+      }
+      .editor,
+      .preview {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        flex: 1;
+      }
+      h1,
+      h2 {
+        color: #333;
+      }
+      textarea {
+        width: 100%;
+        height: 400px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 14px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+      button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      #label-preview {
+        margin-top: 20px;
+        text-align: center;
+        min-height: 200px;
+      }
+      #label-image {
+        max-width: 100%;
+        border: 1px solid #ccc;
+      }
+      #status-message {
+        color: #555;
+      }
+      #error-message {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="editor">
+        <h1>Editor ZPL</h1>
+        <p>
+          Use este formulário ou envie uma requisição POST para
+          <code>/pstprnt</code> via terminal.
+        </p>
+        <form id="zpl-form">
+          <textarea id="zpl-input" name="zpl" rows="20">
+^XA
+^FO50,50^A0N,50,50^FDTeste com Node.js^FS
+^FO50,120^BY3^BCN,100,Y,N,N^FD12345678^FS
+^XZ</textarea
+          >
+          <button type="submit">Renderizar (via Web)</button>
+        </form>
+      </div>
+      <div class="preview">
+        <h2>Pré-visualização da Etiqueta (em tempo real)</h2>
+        <div id="label-preview">
+          <p id="status-message">Aguardando dados da etiqueta...</p>
+          <p id="error-message" style="display: none"></p>
+          <img
+            id="label-image"
+            src=""
+            alt="Pré-visualização da Etiqueta"
+            style="display: none"
+          />
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const socket = io();
+
+      const statusMessage = document.getElementById("status-message");
+      const errorMessage = document.getElementById("error-message");
+      const previewImage = document.getElementById("label-image");
+
+      socket.on("new_label", function (data) {
+        console.log("Nova etiqueta recebida via WebSocket!");
+
+        statusMessage.style.display = "none";
+        errorMessage.style.display = "none";
+
+        previewImage.src = "data:image/png;base64," + data.image_data;
+        previewImage.style.display = "block";
+      });
+
+      socket.on("render_error", function (data) {
+        console.error("Erro de renderização:", data.details);
+        statusMessage.style.display = "none";
+        previewImage.style.display = "none";
+        errorMessage.textContent =
+          "Falha ao renderizar etiqueta: " + data.details;
+        errorMessage.style.display = "block";
+      });
+
+      document
+        .getElementById("zpl-form")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          const zplCode = document.getElementById("zpl-input").value;
+          statusMessage.textContent = "Enviando para renderização...";
+          statusMessage.style.display = "block";
+          errorMessage.style.display = "none";
+
+          fetch("/pstprnt", {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: zplCode,
+          });
+        });
+    </script>
+  </body>
+</html>
