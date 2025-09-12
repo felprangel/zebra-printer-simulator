@@ -54,6 +54,9 @@ app.post("/pstprnt", async (req: Request, res: Response) => {
       console.error("Detalhes do erro da API:", errorDetails);
     } else {
       console.error("Erro inesperado:", error);
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
     }
 
     io.emit("render_error", { error: errorMessage, details: errorDetails });
