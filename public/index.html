@@ -94,43 +94,35 @@
       </div>
       <div class="preview">
         <h2>Pré-visualização da Etiqueta (em tempo real)</h2>
-        <div id="label-preview">
-          <p id="status-message">Aguardando dados da etiqueta...</p>
-          <p id="error-message" style="display: none"></p>
-          <img
-            id="label-image"
-            src=""
-            alt="Pré-visualização da Etiqueta"
-            style="display: none"
-          />
-        </div>
+        <div id="label-preview"></div>
       </div>
     </div>
 
     <script>
       const socket = io();
+      const previewContainer = document.getElementById("label-preview");
 
-      const statusMessage = document.getElementById("status-message");
-      const errorMessage = document.getElementById("error-message");
-      const previewImage = document.getElementById("label-image");
+      socket.on("new_labels", function (data) {
+        console.log("Novas etiquetas recebidas via WebSocket!");
 
-      socket.on("new_label", function (data) {
-        console.log("Nova etiqueta recebida via WebSocket!");
+        previewContainer.innerHTML = "";
 
-        statusMessage.style.display = "none";
-        errorMessage.style.display = "none";
+        data.image_data_array.forEach((base64Image, index) => {
+          const imgElement = document.createElement("img");
+          imgElement.src = "data:image/png;base64," + base64Image;
+          imgElement.alt = "Pré-visualização da Etiqueta " + (index + 1);
 
-        previewImage.src = "data:image/png;base64," + data.image_data;
-        previewImage.style.display = "block";
+          imgElement.style.maxWidth = "100%";
+          imgElement.style.border = "1px solid #ccc";
+          imgElement.style.marginBottom = "15px";
+
+          previewContainer.appendChild(imgElement);
+        });
       });
 
       socket.on("render_error", function (data) {
         console.error("Erro de renderização:", data.details);
-        statusMessage.style.display = "none";
-        previewImage.style.display = "none";
-        errorMessage.textContent =
-          "Falha ao renderizar etiqueta: " + data.details;
-        errorMessage.style.display = "block";
+        previewContainer.innerHTML = `<p style="color: red;">Falha ao renderizar etiqueta: ${data.details}</p>`;
       });
 
       document
@@ -138,9 +130,7 @@
         .addEventListener("submit", function (event) {
           event.preventDefault();
           const zplCode = document.getElementById("zpl-input").value;
-          statusMessage.textContent = "Enviando para renderização...";
-          statusMessage.style.display = "block";
-          errorMessage.style.display = "none";
+          previewContainer.innerHTML = "<p>Enviando para renderização...</p>";
 
           fetch("/pstprnt", {
             method: "POST",
