@@ -3,6 +3,8 @@ import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import axios from "axios";
 import path from "path";
+import fs from "fs";
+import { fromPath } from "pdf2pic";
 
 const app = express();
 const httpServer = createServer(app);
@@ -36,9 +38,32 @@ app.post("/pstprnt", async (req: Request, res: Response) => {
       responseType: "arraybuffer",
     });
 
-    const imageBase64 = Buffer.from(response.data, "binary").toString("base64");
+    const tempPdfPath = path.join(__dirname, `temp_label_${Date.now()}.pdf`);
+    fs.writeFileSync(tempPdfPath, response.data);
 
-    io.emit("new_label", { image_data: imageBase64 });
+    const options = {
+      density: 300,
+      saveFilename: "etiqueta",
+      savePath: __dirname,
+      format: "png",
+      width: 600,
+      height: 900,
+    };
+    const convert = fromPath(tempPdfPath, options);
+
+    const resolvedImagePaths = await convert.bulk(-1, {
+      responseType: "base64",
+    });
+
+    if (!resolvedImagePaths || resolvedImagePaths.length === 0) {
+      throw new Error("A conversão do PDF para imagem falhou.");
+    }
+
+    const imagesBase64 = resolvedImagePaths.map((img) => img.base64);
+
+    io.emit("new_labels", { image_data_array: imagesBase64 });
+
+    fs.unlinkSync(tempPdfPath);
 
     return res.status(200).send();
   } catch (error) {
