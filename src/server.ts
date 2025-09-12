@@ -10,7 +10,7 @@ const io = new SocketIOServer(httpServer);
 
 const PORT = 5001;
 const LABELARY_API_URL =
-  "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/";
+  "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/";
 
 app.use(express.static(path.join(__dirname, "..", "public")));
 app.use(express.text({ type: "*/*" }));
@@ -32,7 +32,7 @@ app.post("/pstprnt", async (req: Request, res: Response) => {
 
   try {
     const response = await axios.post(LABELARY_API_URL, zplData, {
-      headers: { Accept: "image/png" },
+      headers: { Accept: "application/pdf" },
       responseType: "arraybuffer",
     });
 
