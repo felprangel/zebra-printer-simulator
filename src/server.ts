@@ -3,6 +3,8 @@ import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import axios from "axios";
 import path from "path";
+import fs from "fs";
+import { fromPath } from "pdf2pic";
 
 const app = express();
 const httpServer = createServer(app);
@@ -10,7 +12,7 @@ const io = new SocketIOServer(httpServer);
 
 const PORT = 5001;
 const LABELARY_API_URL =
-  "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/";
+  "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/";
 
 app.use(express.static(path.join(__dirname, "..", "public")));
 app.use(express.text({ type: "*/*" }));
@@ -32,13 +34,36 @@ app.post("/pstprnt", async (req: Request, res: Response) => {
 
   try {
     const response = await axios.post(LABELARY_API_URL, zplData, {
-      headers: { Accept: "image/png" },
+      headers: { Accept: "application/pdf" },
       responseType: "arraybuffer",
     });
 
-    const imageBase64 = Buffer.from(response.data, "binary").toString("base64");
+    const tempPdfPath = path.join(__dirname, `temp_label_${Date.now()}.pdf`);
+    fs.writeFileSync(tempPdfPath, response.data);
 
-    io.emit("new_label", { image_data: imageBase64 });
+    const options = {
+      density: 300,
+      saveFilename: "etiqueta",
+      savePath: __dirname,
+      format: "png",
+      width: 600,
+      height: 900,
+    };
+    const convert = fromPath(tempPdfPath, options);
+
+    const resolvedImagePaths = await convert.bulk(-1, {
+      responseType: "base64",
+    });
+
+    if (!resolvedImagePaths || resolvedImagePaths.length === 0) {
+      throw new Error("A conversão do PDF para imagem falhou.");
+    }
+
+    const imagesBase64 = resolvedImagePaths.map((img) => img.base64);
+
+    io.emit("new_labels", { image_data_array: imagesBase64 });
+
+    fs.unlinkSync(tempPdfPath);
 
     return res.status(200).send();
   } catch (error) {
@@ -54,6 +79,9 @@ app.post("/pstprnt", async (req: Request, res: Response) => {
       console.error("Detalhes do erro da API:", errorDetails);
     } else {
       console.error("Erro inesperado:", error);
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
     }
 
     io.emit("render_error", { error: errorMessage, details: errorDetails });
