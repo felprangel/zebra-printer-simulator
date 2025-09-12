@@ -15,6 +15,7 @@ O projeto é construído com **Node.js, Express, TypeScript e Socket.IO**.
 - **Renderização em Tempo Real**: Requisições feitas via terminal atualizam a interface web instantaneamente para todos os clientes conectados.
 - **Log no Console**: Todo ZPL recebido é logado no console do servidor para fins de depuração.
 - **Containerizado**: Totalmente configurado para rodar com Docker e Docker Compose, garantindo um setup rápido e consistente.
+- **Porta Configurável**: A porta do serviço Docker pode ser facilmente alterada via arquivo `.env`.
 
 ## 🚀 Como Executar
 
@@ -38,7 +39,19 @@ Este é o método mais simples e não requer a instalação do Node.js na sua m�
     ```
 
 3.  **Acesse a aplicação:**
-    Abra seu navegador e acesse **[http://localhost:5001](http://localhost:5001)**.
+    Por padrão, o serviço rodará na porta 80. Abra seu navegador e acesse **[http://localhost](http://localhost)**.
+
+#### Customizando a Porta (Opcional)
+
+Se a porta 80 já estiver em uso, você pode alterá-la facilmente:
+
+1.  Crie um arquivo chamado `.env` na raiz do projeto.
+2.  Adicione a seguinte linha, substituindo `5001` pela porta desejada:
+    ```
+    HOST_PORT=5001
+    ```
+3.  Reinicie o container: `docker-compose up --build -d`.
+4.  Agora, acesse a aplicação em `http://localhost:5001`.
 
 ### Método 2: Execução Manual
 
@@ -64,7 +77,7 @@ Se preferir rodar o projeto localmente sem Docker, certifique-se de ter o Node.j
     ```
 
 4.  **Acesse a aplicação:**
-    Abra seu navegador e acesse **[http://localhost:5001](http://localhost:5001)**.
+    Neste modo, o servidor rodará na porta 5001. Abra seu navegador e acesse **[http://localhost:5001](https://www.google.com/search?q=http://localhost:5001)**.
 
 ## 🛠️ Como Usar
 
@@ -72,7 +85,7 @@ Depois que o servidor estiver rodando, você pode testá-lo de duas formas:
 
 #### 1. Pela Interface Web
 
-- Acesse **[http://localhost:5001](http://localhost:5001)**.
+- Acesse a URL em que o servidor está rodando (por padrão, **[http://localhost](http://localhost)** com Docker ou **[http://localhost:5001](http://localhost:5001)** manualmente).
 - Cole seu código ZPL na área de texto à esquerda.
 - Clique no botão "Renderizar (via Web)". A pré-visualização da etiqueta aparecerá à direita.
 
@@ -84,8 +97,10 @@ Esta é a principal funcionalidade. Abra um terminal e envie uma requisição `P
 curl -X POST \
      --header "Content-Type: text/plain" \
      --data "^XA^CF0,60^FO50,50^FDEnviado^FS^FO50,130^FDdo Terminal!^FS^XZ" \
-     http://localhost:5001/pstprnt
+     http://localhost/pstprnt
 ```
+
+_(**Nota**: Se você alterou a porta no Docker ou está executando manualmente, ajuste a URL no comando. Ex: `http://localhost:5001/pstprnt`)_
 
 Imediatamente após executar o comando, a página web aberta em seu navegador será atualizada com a nova etiqueta.
 
