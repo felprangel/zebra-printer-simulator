@@ -3,5 +3,5 @@ services:
     build: .
     container_name: zebra_simulator
     ports:
-      - "5001:5001"
+      - "${HOST_PORT:-80}:5001"
     restart: unless-stopped
