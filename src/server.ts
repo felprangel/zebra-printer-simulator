@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
+import net from "net";
 import axios from "axios";
 import path from "path";
 import fs from "fs";
@@ -11,6 +12,7 @@ const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer);
 
 const PORT = 5001;
+const TCP_PORT = 9100;
 const LABELARY_API_URL =
   "http://api.labelary.com/v1/printers/8dpmm/labels/4x6/";
 
@@ -110,6 +112,53 @@ io.on("connection", (socket) => {
   });
 });
 
+const tcpServer = net.createServer((socket) => {
+  const chunks: Buffer[] = [];
+
+  socket.on("data", (data) => {
+    chunks.push(data);
+  });
+
+  socket.on("end", async () => {
+    const zplData = Buffer.concat(chunks).toString("utf8");
+
+    if (!zplData.trim()) {
+      console.log("Conexão TCP encerrada sem ZPL.");
+      return;
+    }
+
+    try {
+      console.log("================ ZPL Recebido (TCP) ================");
+      console.log(zplData);
+      console.log("====================================================");
+      await renderZpl(zplData, io);
+    } catch (error) {
+      let errorMessage = "Erro desconhecido ao renderizar a etiqueta.";
+      let errorDetails = "";
+
+      if (axios.isAxiosError(error)) {
+        errorMessage = `Erro ao contatar a API de renderização: ${error.message}`;
+        errorDetails = error.response?.data
+          ? Buffer.from(error.response.data).toString()
+          : "N/A";
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      io.emit("render_error", { error: errorMessage, details: errorDetails });
+      console.error("Erro ao processar ZPL via TCP:", error);
+    }
+  });
+
+  socket.on("error", (err) => {
+    console.error("Erro na conexão TCP:", err);
+  });
+});
+
 httpServer.listen(PORT, () => {
   console.log(`Servidor Zebra iniciado em http://localhost:${PORT}`);
+});
+
+tcpServer.listen(TCP_PORT, () => {
+  console.log(`Servidor TCP Zebra ouvindo em 0.0.0.0:${TCP_PORT}`);
 });
