@@ -17,30 +17,23 @@ const LABELARY_API_URL =
 app.use(express.static(path.join(__dirname, "..", "public")));
 app.use(express.text({ type: "*/*" }));
 
-app.get("/", (_req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, "..", "public", "index.html"));
-});
-
-app.post("/pstprnt", async (req: Request, res: Response) => {
-  const zplData: string = req.body;
-
-  console.log("================ ZPL Recebido ================");
-  console.log(zplData);
-  console.log("==============================================");
-
-  if (!zplData) {
-    return res.status(400).send("Erro: Nenhum dado ZPL recebido.");
+async function renderZpl(
+  zplData: string,
+  socketServer: SocketIOServer
+): Promise<void> {
+  if (!zplData || !zplData.trim()) {
+    throw new Error("Erro: Nenhum dado ZPL recebido.");
   }
 
+  const response = await axios.post(LABELARY_API_URL, zplData, {
+    headers: { Accept: "application/pdf" },
+    responseType: "arraybuffer",
+  });
+
+  const tempPdfPath = path.join(__dirname, `temp_label_${Date.now()}.pdf`);
+  fs.writeFileSync(tempPdfPath, response.data);
+
   try {
-    const response = await axios.post(LABELARY_API_URL, zplData, {
-      headers: { Accept: "application/pdf" },
-      responseType: "arraybuffer",
-    });
-
-    const tempPdfPath = path.join(__dirname, `temp_label_${Date.now()}.pdf`);
-    fs.writeFileSync(tempPdfPath, response.data);
-
     const options = {
       density: 300,
       saveFilename: "etiqueta",
@@ -60,11 +53,31 @@ app.post("/pstprnt", async (req: Request, res: Response) => {
     }
 
     const imagesBase64 = resolvedImagePaths.map((img) => img.base64);
+    socketServer.emit("new_labels", { image_data_array: imagesBase64 });
+  } finally {
+    if (fs.existsSync(tempPdfPath)) {
+      fs.unlinkSync(tempPdfPath);
+    }
+  }
+}
 
-    io.emit("new_labels", { image_data_array: imagesBase64 });
+app.get("/", (_req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, "..", "public", "index.html"));
+});
 
-    fs.unlinkSync(tempPdfPath);
+app.post("/pstprnt", async (req: Request, res: Response) => {
+  const zplData: string = req.body;
 
+  console.log("================ ZPL Recebido ================");
+  console.log(zplData);
+  console.log("==============================================");
+
+  if (!zplData || !zplData.trim()) {
+    return res.status(400).send("Erro: Nenhum dado ZPL recebido.");
+  }
+
+  try {
+    await renderZpl(zplData, io);
     return res.status(200).send();
   } catch (error) {
     let errorMessage = "Erro desconhecido ao renderizar a etiqueta.";
