@@ -11,6 +11,7 @@ O projeto é construído com **Node.js, Express, TypeScript e Socket.IO**.
 ## ✨ Funcionalidades
 
 - **Endpoint `/pstprnt`**: Simula um servidor de impressão Zebra, recebendo ZPL via `POST`.
+- **Listener TCP 9100**: Recebe ZPL bruto via conexão TCP e renderiza a etiqueta.
 - **Interface Web Interativa**: Uma página para colar e testar o código ZPL manualmente.
 - **Renderização em Tempo Real**: Requisições feitas via terminal atualizam a interface web instantaneamente para todos os clientes conectados.
 - **Log no Console**: Todo ZPL recebido é logado no console do servidor para fins de depuração.
@@ -103,6 +104,14 @@ curl -X POST \
 _(**Nota**: Se você alterou a porta no Docker ou está executando manualmente, ajuste a URL no comando. Ex: `http://localhost:5001/pstprnt`)_
 
 Imediatamente após executar o comando, a página web aberta em seu navegador será atualizada com a nova etiqueta.
+
+#### 3. Pela Porta TCP 9100
+
+Envie o ZPL por uma conexão TCP e finalize a conexão para disparar a renderização:
+
+```bash
+cat etiqueta.zpl | nc localhost 9100
+```
 
 ## 🤖 Stack Tecnológica
 
