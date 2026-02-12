@@ -113,6 +113,12 @@ Envie o ZPL por uma conexão TCP e finalize a conexão para disparar a renderiza
 cat etiqueta.zpl | nc localhost 9100
 ```
 
+Se precisar trocar a porta no host quando estiver usando Docker, ajuste no `.env`:
+
+```bash
+TCP_HOST_PORT=9101
+```
+
 ## 🤖 Stack Tecnológica
 
 - **Backend**: Node.js, Express, TypeScript
